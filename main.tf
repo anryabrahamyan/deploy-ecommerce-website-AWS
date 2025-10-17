@@ -1,21 +1,21 @@
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "6.4.0"
-  name    = "webshop-vpc"
-  cidr    = "10.0.0.0/16"
+  name    = var.vpc_name
+  cidr    = var.vpc_cidr
 
   azs             = ["${var.aws_region}a", "${var.aws_region}b", "${var.aws_region}c"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  private_subnets = var.private_subnets
+  public_subnets  = var.public_subnets
 
-  enable_nat_gateway                   = true
-  single_nat_gateway                   = true
-  enable_vpn_gateway                   = false
-  create_igw                           = true
-  create_private_nat_gateway_route     = true
-  enable_flow_log                      = true
-  create_flow_log_cloudwatch_iam_role  = true
-  create_flow_log_cloudwatch_log_group = true
+  enable_nat_gateway                   = var.enable_nat_gateway
+  single_nat_gateway                   = var.single_nat_gateway
+  enable_vpn_gateway                   = var.enable_vpn_gateway
+  create_igw                           = var.create_igw
+  create_private_nat_gateway_route     = var.create_private_nat_gateway_route
+  enable_flow_log                      = var.enable_flow_log
+  create_flow_log_cloudwatch_iam_role  = var.create_flow_log_cloudwatch_iam_role
+  create_flow_log_cloudwatch_log_group = var.create_flow_log_cloudwatch_log_group
   tags = {
     Terraform   = "true"
     Environment = "dev"
@@ -28,12 +28,12 @@ module "ec2-instance" {
   source     = "terraform-aws-modules/ec2-instance/aws"
   version    = "6.1.2"
 
-  name                        = "webserver-instance"
-  ami                         = "ami-0360c520857e3138f"#AMI for ubuntu server
+  name                        = var.webserver_name
+  ami                         = var.ec2_ami #AMI for ubuntu server
   subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = true
+  associate_public_ip_address = var.associate_public_ip_address
   availability_zone           = "${var.aws_region}a"
-  instance_type               = "t3.medium"
+  instance_type               = var.ec2_instance_type
   #no EBS volume created for now
   # ebs_volumes = {
   #   main = {
@@ -47,22 +47,11 @@ module "ec2-instance" {
   #   }
   # }
 
-  security_group_name        = "webserver-sg"
-  security_group_description = "Allow HTTP and SSH inbound traffic"
-  security_group_ingress_rules = {
-    http = {
-      cidr_ipv4   = "0.0.0.0/0"
-      to_port     = 80
-      ip_protocol = "tcp"
-    }
-    ssh = {
-      cidr_ipv4   = "0.0.0.0/0"
-      to_port     = 22
-      ip_protocol = "tcp"
-    }
-  }
-  security_group_vpc_id = module.vpc.vpc_id
-  user_data = file("${path.module}/templates/userdata.sh")
+  security_group_name          = var.security_group_name
+  security_group_description   = var.security_group_description
+  security_group_ingress_rules = var.sg_ingress_rules
+  security_group_vpc_id        = module.vpc.vpc_id
+  user_data                    = local.bootstrap_script
   tags = {
     Terraform   = "true"
     Environment = "dev"
