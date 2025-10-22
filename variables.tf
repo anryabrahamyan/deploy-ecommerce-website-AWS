@@ -44,11 +44,11 @@ variable "ec2_instance_type" {
 #security group ingress rules
 variable "sg_ingress_rules" {
   description = "Security group ingress rules"
-  type = map(object({
-    cidr_ipv4   = string
-    to_port     = number
-    ip_protocol = string
-  }))
+  # type = map(object({
+  #   cidr_ipv4   = string
+  #   to_port     = number
+  #   ip_protocol = string
+  # }))
 }
 
 variable "enable_nat_gateway" {
@@ -120,4 +120,60 @@ variable "webserver_name" {
   description = "Webserver name"
   type        = string
   default     = "webserver-instance"
+}
+
+variable "launch_template_version" {
+  description = "Launch template version"
+  type        = string
+  default     = 1
+}
+
+variable "asg_group_name" {
+  description = "Auto Scaling Group Name"
+  type        = string
+  default     = "webserver-asg"
+}
+
+variable "scaling_policies" {
+  type = map(
+    object({
+      adjustment_type                  = optional(string)
+      cooldown                         = optional(number)
+      enabled                          = optional(bool)
+      estimated_instance_warmup        = optional(number)
+      metric_aggregation_type          = optional(string)
+      min_adjustment_magnitude         = optional(number)
+      name                             = optional(string)
+      policy_type                      = optional(string)
+      predictive_scaling_configuration = optional(any)
+      scaling_adjustment               = optional(number)
+      step_adjustment                  = optional(any)
+      target_tracking_configuration    = optional(any)
+    })
+  )
+
+  default = {
+    cpu_scale_up = {
+      policy_type               = "TargetTrackingScaling"
+      enabled                   = true
+      estimated_instance_warmup = 120
+
+      target_tracking_configuration = {
+        predefined_metric_specification = {
+          predefined_metric_type = "ASGAverageCPUUtilization"
+        }
+        target_value = 70
+      }
+    }
+  }
+}
+
+variable sg_egress_rules {
+  description = "Security group egress rules"
+  # type = map(object({
+  #   cidr_ipv4   = string
+  #   from_port   = number
+  #   to_port     = number
+  #   ip_protocol = string
+  # }))
 }

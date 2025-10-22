@@ -7,8 +7,8 @@ apt-get install -y nginx curl
 
 # Create web root if not exists
 mkdir -p /var/www/html
-
-while [ $RETRIES -gt 0 ]; do
+RETRIES=15
+while [ "$RETRIES" -gt 0 ]; do
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" \
             -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
   INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" \

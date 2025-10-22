@@ -22,38 +22,108 @@ module "vpc" {
   }
 }
 
+resource "aws_security_group" "web_sg" {
+  name        = var.security_group_name
+  description = var.security_group_description
+  vpc_id      = module.vpc.vpc_id
+  #define ingress rules for each rule in var.sg_ingress_rules
+  dynamic "ingress" {
+    for_each = var.sg_ingress_rules
+    content {
+      from_port   = ingress.value.from_port
+      to_port     = ingress.value.to_port
+      protocol    = ingress.value.ip_protocol
+      cidr_blocks = [ingress.value.cidr_ipv4]
+    }
+  }
+  #configure egress rules for each rule in var.sg_egress_rules
+  dynamic "egress" {
+    for_each = var.sg_egress_rules
+    content {
+      from_port   = egress.value.from_port
+      to_port     = egress.value.to_port
+      protocol    = egress.value.ip_protocol
+      cidr_blocks = [egress.value.cidr_ipv4]
+    }
+  }
+}
 
-module "ec2-instance" {
-  depends_on = [module.vpc]
-  source     = "terraform-aws-modules/ec2-instance/aws"
-  version    = "6.1.2"
+resource "aws_launch_template" "server_template" {
+  region          = var.aws_region
+  name            = var.webserver_name
+  default_version = var.launch_template_version
+  description     = "launch template for ec2 servers"
 
-  name                        = var.webserver_name
-  ami                         = var.ec2_ami #AMI for ubuntu server
-  subnet_id                   = module.vpc.public_subnets[0]
-  associate_public_ip_address = var.associate_public_ip_address
-  availability_zone           = "${var.aws_region}a"
-  instance_type               = var.ec2_instance_type
-  #no EBS volume created for now
-  # ebs_volumes = {
-  #   main = {
-  #     encrypted                      = true
-  #     iops                           = 200
-  #     size                           = 10
-  #     type                           = "gp3"
-  #     device_name                    = "/dev/sdb"
-  #     skip_destroy                   = false
-  #     stop_instance_before_detaching = true
-  #   }
-  # }
+  image_id                             = var.ec2_ami
+  instance_initiated_shutdown_behavior = "terminate"
+  instance_type = var.ec2_instance_type
 
-  security_group_name          = var.security_group_name
-  security_group_description   = var.security_group_description
-  security_group_ingress_rules = var.sg_ingress_rules
-  security_group_vpc_id        = module.vpc.vpc_id
-  user_data                    = local.bootstrap_script
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 64
+    instance_metadata_tags      = "enabled"
+  }
+
+
+  network_interfaces {
+    associate_public_ip_address = var.associate_public_ip_address
+    delete_on_termination       = true
+    security_groups = [aws_security_group.web_sg.id]
+  }
+  # vpc_security_group_ids = [aws_security_group.web_sg.id]
+  user_data              = base64encode(local.bootstrap_script)
+}
+
+module "asg"{
+  source  = "terraform-aws-modules/autoscaling/aws"
+  version = "9.0.2"
+  # Autoscaling group
+  name = var.asg_group_name
+
+  min_size                  = 2
+  max_size                  = 4
+  desired_capacity          = 2
+  wait_for_capacity_timeout = 0
+  health_check_type         = "EC2"
+  vpc_zone_identifier       = module.vpc.public_subnets
+
+  instance_refresh = {
+    strategy = "Rolling"
+    preferences = {
+      checkpoint_delay       = 600
+      checkpoint_percentages = [35, 70, 100]
+      instance_warmup        = 100
+      min_healthy_percentage = 50
+      max_healthy_percentage = 100
+    }
+    triggers = ["launch_template"]
+  }
+
+  # Launch template
+  create_launch_template = false
+  launch_template_id     = aws_launch_template.server_template.id
+  launch_template_version = "$Latest"
+
   tags = {
-    Terraform   = "true"
     Environment = "dev"
+  }
+}
+
+resource "aws_autoscaling_policy" "asg_policy" {
+  depends_on = [ module.asg ]
+  for_each = var.scaling_policies
+
+  name                      = each.value.name != null ? each.value.name : each.key
+  policy_type               = each.value.policy_type
+  autoscaling_group_name    = module.asg.autoscaling_group_name
+  estimated_instance_warmup = each.value.estimated_instance_warmup
+  enabled                   = lookup(each.value, "enabled", true)
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = each.value.target_tracking_configuration.predefined_metric_specification.predefined_metric_type
+    }
+    target_value = each.value.target_tracking_configuration.target_value
   }
 }
