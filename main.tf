@@ -85,7 +85,7 @@ module "asg"{
   max_size                  = 4
   desired_capacity          = 2
   wait_for_capacity_timeout = 0
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
   vpc_zone_identifier       = module.vpc.public_subnets
 
   instance_refresh = {
@@ -126,4 +126,43 @@ resource "aws_autoscaling_policy" "asg_policy" {
     }
     target_value = each.value.target_tracking_configuration.target_value
   }
+}
+
+module "elb_http" {
+  source  = "terraform-aws-modules/elb/aws"
+  version = "4.0.2"
+  name = var.elb_name
+
+  subnets         = module.vpc.public_subnets
+  security_groups = [aws_security_group.web_sg.id]
+  internal        = false
+
+  listener = [
+    {
+      instance_port     = 80
+      instance_protocol = "HTTP"
+      lb_port           = 80
+      lb_protocol       = "HTTP"
+    }
+  ]
+
+  health_check = {
+    target              = "HTTP:80/"
+    interval            = 10
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+  }
+
+
+  tags = {
+    Owner       = "user"
+    Environment = "dev"
+  }
+}
+
+# Create a new load balancer attachment
+resource "aws_autoscaling_attachment" "elb_attachment" {
+  autoscaling_group_name = module.asg.autoscaling_group_name
+  elb                    = module.elb_http.elb_name
 }

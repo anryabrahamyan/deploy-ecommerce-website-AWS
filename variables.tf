@@ -177,3 +177,9 @@ variable sg_egress_rules {
   #   ip_protocol = string
   # }))
 }
+
+variable "elb_name" {
+  description = "Name of the ELB"
+  type        = string
+  default     = "webshop-elb"
+}

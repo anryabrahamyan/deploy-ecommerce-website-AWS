@@ -7,3 +7,9 @@
 #   description = "ID of the webserver"
 #   value       = module.ec2-instance.id
 # }
+
+#output elb dns name
+output "elb_dns_name" {
+  description = "DNS name of the ELB"
+  value       = module.elb_http.elb_dns_name
+}
