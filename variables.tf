@@ -170,7 +170,7 @@ variable "scaling_policies" {
 
 variable "sg_egress_rules" {
   description = "Security group egress rules"
-  type        = map(object({
+  type = map(object({
     cidr_ipv4   = string
     from_port   = number
     to_port     = number
