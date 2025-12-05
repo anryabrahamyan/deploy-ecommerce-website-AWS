@@ -56,7 +56,7 @@ resource "aws_launch_template" "server_template" {
 
   image_id                             = var.ec2_ami
   instance_initiated_shutdown_behavior = "terminate"
-  instance_type = var.ec2_instance_type
+  instance_type                        = var.ec2_instance_type
 
   metadata_options {
     http_endpoint               = "enabled"
@@ -69,13 +69,13 @@ resource "aws_launch_template" "server_template" {
   network_interfaces {
     associate_public_ip_address = var.associate_public_ip_address
     delete_on_termination       = true
-    security_groups = [aws_security_group.web_sg.id]
+    security_groups             = [aws_security_group.web_sg.id]
   }
   # vpc_security_group_ids = [aws_security_group.web_sg.id]
-  user_data              = base64encode(local.bootstrap_script)
+  user_data = base64encode(local.bootstrap_script)
 }
 
-module "asg"{
+module "asg" {
   source  = "terraform-aws-modules/autoscaling/aws"
   version = "9.0.2"
   # Autoscaling group
@@ -101,8 +101,8 @@ module "asg"{
   }
 
   # Launch template
-  create_launch_template = false
-  launch_template_id     = aws_launch_template.server_template.id
+  create_launch_template  = false
+  launch_template_id      = aws_launch_template.server_template.id
   launch_template_version = "$Latest"
 
   tags = {
@@ -111,8 +111,8 @@ module "asg"{
 }
 
 resource "aws_autoscaling_policy" "asg_policy" {
-  depends_on = [ module.asg ]
-  for_each = var.scaling_policies
+  depends_on = [module.asg]
+  for_each   = var.scaling_policies
 
   name                      = each.value.name != null ? each.value.name : each.key
   policy_type               = each.value.policy_type
@@ -131,7 +131,7 @@ resource "aws_autoscaling_policy" "asg_policy" {
 module "elb_http" {
   source  = "terraform-aws-modules/elb/aws"
   version = "4.0.2"
-  name = var.elb_name
+  name    = var.elb_name
 
   subnets         = module.vpc.public_subnets
   security_groups = [aws_security_group.web_sg.id]
