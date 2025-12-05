@@ -41,14 +41,22 @@ variable "ec2_instance_type" {
   default     = "t3.medium"
 }
 
-#security group ingress rules
 variable "sg_ingress_rules" {
   description = "Security group ingress rules"
-  # type = map(object({
-  #   cidr_ipv4   = string
-  #   to_port     = number
-  #   ip_protocol = string
-  # }))
+  type = map(object({
+    cidr_ipv4   = string
+    from_port   = number
+    to_port     = number
+    ip_protocol = string
+  }))
+  default = {
+    allow_http = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 80
+      to_port     = 80
+      ip_protocol = "tcp"
+    }
+  }
 }
 
 variable "enable_nat_gateway" {
