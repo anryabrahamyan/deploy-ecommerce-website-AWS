@@ -170,12 +170,20 @@ variable "scaling_policies" {
 
 variable "sg_egress_rules" {
   description = "Security group egress rules"
-  # type = map(object({
-  #   cidr_ipv4   = string
-  #   from_port   = number
-  #   to_port     = number
-  #   ip_protocol = string
-  # }))
+  type        = map(object({
+    cidr_ipv4   = string
+    from_port   = number
+    to_port     = number
+    ip_protocol = string
+  }))
+  default = {
+    allow_all_outbound = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 0
+      to_port     = 0
+      ip_protocol = "-1"
+    }
+  }
 }
 
 variable "elb_name" {
