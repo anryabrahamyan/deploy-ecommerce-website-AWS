@@ -166,3 +166,19 @@ resource "aws_autoscaling_attachment" "elb_attachment" {
   autoscaling_group_name = module.asg.autoscaling_group_name
   elb                    = module.elb_http.elb_name
 }
+
+data "aws_route53_zone" "selected" {
+  name         = "*realhandsonlabs.net"
+  private_zone = false
+}
+
+resource "aws_route53_record" "app" {
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = "app.${data.aws_route53_zone.selected.name}"
+  type    = "A"
+  alias {
+    name                   = module.elb_http.elb_dns_name
+    zone_id                = module.elb_http.elb_zone_id
+    evaluate_target_health = true
+  }
+}
