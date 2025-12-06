@@ -1,0 +1,105 @@
+name: Security Scans + Copilot Suggestions
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    paths:
+      - '**/*.tf'
+      - '.github/**'
+
+jobs:
+  security:
+    name: Terraform Security Scans
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Run tflint (Terraform linter)
+        uses: terraform-linters/tflint-action@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run tfsec (Terraform security scanner)
+        uses: aquasecurity/tfsec-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Checkov (policy-as-code security scanner)
+        uses: bridgecrewio/checkov-action@v10
+        with:
+          directory: .
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+  copilot:
+    name: Copilot Suggestions (optional)
+    needs: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install GitHub CLI
+        uses: cli/gh-action@v2
+
+      - name: Attempt to install Copilot CLI extension
+        run: |
+          set -e
+          # If gh is installed by the action above this will attempt to install the Copilot extension.
+          # This is optional: if installation fails the step will continue without failing the job.
+          if gh --version >/dev/null 2>&1; then
+            echo "gh CLI is available. Trying to install Copilot extension (if published)..."
+            gh extension install github/copilot-cli || echo "Copilot extension install failed or not available; skipping."
+          else
+            echo "gh CLI not available; skipping Copilot extension install."
+          fi
+
+      - name: Generate Copilot suggestions and post PR comment (best-effort)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Determine if this run is for a pull request
+          PR_NUMBER="${{ github.event.pull_request.number || '' }}"
+          if [ -z "$PR_NUMBER" ]; then
+            echo "Not a pull_request event -- skipping Copilot suggestions."
+            exit 0
+          fi
+
+          # Find Terraform files in the repo (you can change the glob as needed)
+          FILES=$(git ls-files '*.tf' || true)
+          if [ -z "$FILES" ]; then
+            echo "No Terraform files changed - skipping Copilot suggestions."
+            exit 0
+          fi
+
+          # If Copilot CLI is available (via gh extension) attempt to run it for each file.
+          if command -v gh >/dev/null 2>&1 && gh --help | grep -iq copilot; then
+            echo "Copilot CLI appears available via gh. Running copilot for changed files (best-effort)..."
+            # Keep a temporary file for suggestions
+            TMPFILE=$(mktemp)
+            for f in $FILES; do
+              echo "--- Suggestions for $f ---" >> "$TMPFILE" || true
+              # Try running copilot review/generate commands. This is best-effort: command names vary by extension.
+              if gh copilot review --file "$f" --json >/dev/null 2>&1; then
+                gh copilot review --file "$f" --json >> "$TMPFILE" || true
+              elif gh copilot --file "$f" review >/dev/null 2>&1; then
+                gh copilot --file "$f" review >> "$TMPFILE" || true
+              else
+                echo "(Copilot CLI present but review command not found)" >> "$TMPFILE"
+              fi
+            done
+
+            # Post a PR comment with a short summary and attach the raw suggestions as a file attachment
+            COMMENT_BODY="Copilot (best-effort) suggestions for changed Terraform files. If this comment is empty, Copilot CLI was not available or returned no output."
+            gh pr comment "$PR_NUMBER" --body "$COMMENT_BODY" || true
+            # Upload suggestions as a comment attachment (fallback: paste content in a comment if small)
+            SUGGESTIONS=$(cat "$TMPFILE" | sed 's/"/\"/g') || true
+            if [ -n "$SUGGESTIONS" ]; then
+              gh pr comment "$PR_NUMBER" --body "
