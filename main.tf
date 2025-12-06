@@ -169,7 +169,7 @@ resource "aws_autoscaling_attachment" "elb_attachment" {
 
 data "aws_route53_zones" "all" {}
 data "aws_route53_zone" "selected" {
-  zone_id = aws.aws_route53_zones.all.ids[0]
+  zone_id = data.aws_route53_zones.all.zones[0].id
   private_zone = false
 }
 
