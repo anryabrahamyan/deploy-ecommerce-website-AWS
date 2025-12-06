@@ -21,6 +21,8 @@ module "vpc" {
     Environment = "dev"
   }
 }
+data "aws_caller_identity" "current" {}
+
 
 resource "aws_security_group" "web_sg" {
   name        = var.security_group_name
@@ -168,6 +170,7 @@ resource "aws_autoscaling_attachment" "elb_attachment" {
 }
 
 data "aws_route53_zone" "selected" {
+  name = "${data.aws_caller_identity.current.account_id}.realhandsonlabs.net"
   private_zone = false
 }
 
