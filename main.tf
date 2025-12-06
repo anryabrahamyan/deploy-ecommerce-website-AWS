@@ -14,7 +14,7 @@ module "vpc" {
   create_igw                           = var.create_igw
   create_private_nat_gateway_route     = var.create_private_nat_gateway_route
   enable_flow_log                      = var.enable_flow_log
-  create_flow_log_cloudwatch_iam_role  = var.create_flow_log_cloudwatch_iam_role
+  # create_flow_log_cloudwatch_iam_role  = var.create_flow_log_cloudwatch_iam_role
   create_flow_log_cloudwatch_log_group = var.create_flow_log_cloudwatch_log_group
   tags = {
     Terraform   = "true"
