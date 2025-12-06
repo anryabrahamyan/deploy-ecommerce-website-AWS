@@ -167,13 +167,12 @@ resource "aws_autoscaling_attachment" "elb_attachment" {
   elb                    = module.elb_http.elb_name
 }
 
-data "aws_route53_zone" "selected" {
-  name         = "*realhandsonlabs.net"
-  private_zone = false
-}
+data "aws_route53_zones" "all" {}
+
+
 
 resource "aws_route53_record" "app" {
-  zone_id = data.aws_route53_zone.selected.zone_id
+  zone_id = data.aws_route53_zones.all.ids[0]
   name    = "app.${data.aws_route53_zone.selected.name}"
   type    = "A"
   alias {
