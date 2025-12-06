@@ -1,6 +1,7 @@
 name: Security Scans + Copilot Suggestions
 
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
@@ -20,20 +21,29 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Run tflint (Terraform linter)
-        uses: terraform-linters/tflint-action@v3
+        uses: terraform-linters/setup-tflint@v6
         with:
+          cache: true
           github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Init TFLint
+        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run TFLint
+        run: tflint -f compact
 
       - name: Run tfsec (Terraform security scanner)
         uses: aquasecurity/tfsec-action@v1.0.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Checkov (policy-as-code security scanner)
         uses: bridgecrewio/checkov-action@v10
         with:
           directory: .
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   copilot:
     name: Copilot Suggestions (optional)
