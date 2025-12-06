@@ -168,7 +168,7 @@ resource "aws_autoscaling_attachment" "elb_attachment" {
   autoscaling_group_name = module.asg.autoscaling_group_name
   elb                    = module.elb_http.elb_name
 }
-
+#add test
 # data "aws_route53_zone" "selected" {
 #   name = "${data.aws_caller_identity.current.account_id}.realhandsonlabs.net"
 #   private_zone = false
