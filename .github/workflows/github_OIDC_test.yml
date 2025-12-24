@@ -1,6 +1,6 @@
 name: AWS example workflow
 on:
-  workflow_dispatch
+  workflow_dispatch:
 env:
   BUCKET_NAME : "mytestbucket-oidc-demo12341"
   AWS_REGION : "us-east-1"
