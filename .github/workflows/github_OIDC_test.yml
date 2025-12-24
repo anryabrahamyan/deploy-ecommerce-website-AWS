@@ -23,4 +23,5 @@ jobs:
       # Upload a file to AWS s3
       - name: Copy index.html to s3
         run: |
-          aws s3 create-bucket --bucket ${{ env.BUCKET_NAME }} --region ${{ env.AWS_REGION }} 
+          aws s3 mb s3://${{ env.BUCKET_NAME }} --region ${{ env.AWS_REGION }} 
+
