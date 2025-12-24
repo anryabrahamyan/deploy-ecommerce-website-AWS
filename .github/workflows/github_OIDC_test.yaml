@@ -1,0 +1,26 @@
+name: AWS example workflow
+on:
+  workflow_dispatch
+env:
+  BUCKET_NAME : "mytestbucket-oidc-demo12341"
+  AWS_REGION : "us-east-1"
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write   # This is required for requesting the JWT
+  contents: read    # This is required for actions/checkout
+jobs:
+  s3bucket-create:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git clone the repository
+        uses: actions/checkout@v5
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
+        with:
+          role-to-assume: myrole
+          role-session-name: newsession
+          aws-region: ${{ env.AWS_REGION }}
+      # Upload a file to AWS s3
+      - name: Copy index.html to s3
+        run: |
+          aws s3 create-bucket --bucket ${{ env.BUCKET_NAME }} --region ${{ env.AWS_REGION }} 
