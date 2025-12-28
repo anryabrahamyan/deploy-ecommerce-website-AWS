@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: OIDC Provider and IAM Role for GitHub Actions (User-scoped)
+
+Parameters:
+  GitHubUsername:
+    Type: String
+    Default: anryabrahamyan
+    Description: Your GitHub username to scope the trust policy.
+  RepositoryName:
+    Type: String
+    Default: deploy-ecommerce-website-AWS
+    Description: The specific repository name.
+
+Resources:
+  # 1. Create the OIDC Identity Provider
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+
+  # 2. Create the IAM Role referenced in your workflow (myrole)
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: myrole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !Ref GithubOidc
+            Condition:
+              StringLike:
+                # Scoping to your specific user account as requested
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubUsername}/${RepositoryName}:*"
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+
+      # 3. Permissions required for 'aws s3 mb' (Make Bucket)
+      Policies:
+        - PolicyName: S3BucketCreationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:GetBucketLocation
+                  - s3:ListBucket
+                Resource: 
+                  - "arn:aws:s3:::mytestbucket-oidc-demo12341"
+                  - "arn:aws:s3:::*" # Needed for general 'mb' commands
+
+Outputs:
+  RoleArn:
+    Description: The ARN of the role to use in your GitHub Workflow
+    Value: !GetAtt GitHubActionsRole.Arn

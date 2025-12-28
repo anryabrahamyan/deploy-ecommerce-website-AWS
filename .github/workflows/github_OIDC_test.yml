@@ -1,6 +1,10 @@
 name: AWS example workflow
 on:
   workflow_dispatch:
+    # inputs AWS account number 
+    inputs:
+      aws_account_id:
+        description: 'AWS Account'
 env:
   BUCKET_NAME : "mytestbucket-oidc-demo12341"
   AWS_REGION : "us-east-1"
@@ -17,7 +21,7 @@ jobs:
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
         with:
-          role-to-assume: arn:aws:iam::724102270070:role/myrole
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/myrole
           role-session-name: newsession
           aws-region: ${{ env.AWS_REGION }}
       # Upload a file to AWS s3
