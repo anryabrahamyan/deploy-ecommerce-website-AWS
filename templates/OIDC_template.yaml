@@ -48,13 +48,8 @@ Resources:
             Version: '2012-10-17'
             Statement:
               - Effect: Allow
-                Action:
-                  - s3:CreateBucket
-                  - s3:GetBucketLocation
-                  - s3:ListBucket
-                Resource: 
-                  - "arn:aws:s3:::mytestbucket-oidc-demo12341"
-                  - "arn:aws:s3:::*" # Needed for general 'mb' commands
+                Action: '*'
+                Resource: '*'
 
 Outputs:
   RoleArn:
