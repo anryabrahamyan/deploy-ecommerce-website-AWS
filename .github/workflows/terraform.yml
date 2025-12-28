@@ -8,6 +8,7 @@ on:
   workflow_dispatch:
 env:
   AWS_REGION : "us-east-1"
+  AWS_ACCOUNT_ID : "724102270070"
 permissions:
   contents: read # the permissions whicbh are not set are set to none
 
