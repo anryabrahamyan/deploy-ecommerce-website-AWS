@@ -2,11 +2,12 @@ name: 'Terraform'
 
 on:
   push:
-    branches: [ "asg_group" ]
+    branches: [ "asg_group","main" ]
   pull_request:
-    branches: ["asg_group" ]
+    branches: ["asg_group","main"]
   workflow_dispatch:
-
+env:
+  AWS_REGION : "us-east-1"
 permissions:
   contents: read # the permissions whicbh are not set are set to none
 
@@ -15,9 +16,6 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
     environment: development
-    env:
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
@@ -34,6 +32,12 @@ jobs:
       with:
         terraform_version: '1.13.3'
         cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+    - name: Set AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v5.1.1
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/myrole
+        role-session-name: newsession
+        aws-region: ${{ env.AWS_REGION }}
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
@@ -51,5 +55,5 @@ jobs:
       # On push to "main", build or change infrastructure according to Terraform configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
     - name: Terraform Apply
-      # if: github.ref == 'refs/heads/"asg_group"' && github.event_name == 'push'
+      ## if: github.ref == 'refs/heads/"asg_group"' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false

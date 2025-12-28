@@ -1,4 +1,4 @@
-name: AWS example workflow
+name: Set Up OIDC
 on:
   workflow_dispatch:
     # inputs AWS account number 
@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Git clone the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502
         with:
