@@ -36,7 +36,7 @@ jobs:
     - name: Set AWS Credentials
       uses: aws-actions/configure-aws-credentials@v5.1.1
       with:
-        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/myrole
+        role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/myrole
         role-session-name: newsession
         aws-region: ${{ env.AWS_REGION }}
 
