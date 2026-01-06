@@ -144,7 +144,7 @@ module "elb_http" {
       instance_port     = 80
       instance_protocol = "HTTP"
       lb_port           = 80
-      lb_protocol       = "HTTPS"
+      lb_protocol       = "HTTP"
     }
   ]
 
